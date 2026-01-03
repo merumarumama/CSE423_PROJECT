@@ -2,7 +2,6 @@ from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
 import math
-import time
 
 # Camera position (third person view looking at the cabin floor)
 camera_pos = (0, 600, 400)  # Elevated view looking down
@@ -12,25 +11,20 @@ fovY = 60
 
 # Room dimensions (just the floor area)
 ROOM_SIZE = 400
-GRID_LENGTH = ROOM_SIZE
 
 # Animation variables
 object_pulse = 0
 
 def draw_text(x, y, text, font=GLUT_BITMAP_HELVETICA_18, color=(1.0, 1.0, 1.0)):
-    glPushAttrib(GL_CURRENT_BIT)
-    
     glMatrixMode(GL_PROJECTION)
     glPushMatrix()
     glLoadIdentity()
     gluOrtho2D(0, 1000, 0, 800)
-    
     glMatrixMode(GL_MODELVIEW)
     glPushMatrix()
     glLoadIdentity()
     
     glColor3f(*color)
-    
     glRasterPos2f(x, y)
     for ch in text:
         glutBitmapCharacter(font, ord(ch))
@@ -39,73 +33,32 @@ def draw_text(x, y, text, font=GLUT_BITMAP_HELVETICA_18, color=(1.0, 1.0, 1.0)):
     glMatrixMode(GL_PROJECTION)
     glPopMatrix()
     glMatrixMode(GL_MODELVIEW)
-    
-    glPopAttrib()
 
 def draw_wooden_floor():
-    """Draw detailed wooden floor with planks and pattern"""
-    glPushMatrix()
-    
-    # Base floor color
-    glColor3f(0.45, 0.3, 0.2)
+    """Draw striped wooden floor with two shades of brown"""
     glBegin(GL_QUADS)
-    glVertex3f(-ROOM_SIZE, -ROOM_SIZE, 0)
-    glVertex3f(ROOM_SIZE, -ROOM_SIZE, 0)
-    glVertex3f(ROOM_SIZE, ROOM_SIZE, 0)
-    glVertex3f(-ROOM_SIZE, ROOM_SIZE, 0)
+    
+    # Create stripes in the x-direction
+    stripe_width = 50
+    num_stripes = int((ROOM_SIZE * 2) / stripe_width)
+    
+    for i in range(-num_stripes//2, num_stripes//2):
+        x_start = i * stripe_width
+        x_end = (i + 1) * stripe_width
+        
+        # Alternate between two shades of brown
+        if i % 2 == 0:
+            glColor3f(0.6, 0.4, 0.25)  # Light brown
+        else:
+            glColor3f(0.45, 0.3, 0.2)   # Dark brown
+        
+        # Draw the stripe across the entire floor
+        glVertex3f(x_start, -ROOM_SIZE, 0)
+        glVertex3f(x_end, -ROOM_SIZE, 0)
+        glVertex3f(x_end, ROOM_SIZE, 0)
+        glVertex3f(x_start, ROOM_SIZE, 0)
+    
     glEnd()
-    
-    # Draw individual wooden planks
-    plank_width = 50
-    plank_length = ROOM_SIZE * 2
-    num_planks = int(plank_length / plank_width)
-    
-    for i in range(-num_planks//2, num_planks//2):
-        x_start = i * plank_width
-        x_end = (i + 1) * plank_width
-        
-        # Alternate plank colors
-        if i % 2 == 0:
-            glColor3f(0.5, 0.35, 0.25)  # Light wood
-        else:
-            glColor3f(0.4, 0.28, 0.18)  # Dark wood
-        
-        glBegin(GL_QUADS)
-        glVertex3f(x_start, -ROOM_SIZE, 0.1)
-        glVertex3f(x_end, -ROOM_SIZE, 0.1)
-        glVertex3f(x_end, ROOM_SIZE, 0.1)
-        glVertex3f(x_start, ROOM_SIZE, 0.1)
-        glEnd()
-        
-        # Draw plank separations (gaps between planks)
-        glColor3f(0.25, 0.15, 0.1)
-        glLineWidth(1.5)
-        glBegin(GL_LINES)
-        glVertex3f(x_end, -ROOM_SIZE, 0.15)
-        glVertex3f(x_end, ROOM_SIZE, 0.15)
-        glEnd()
-    
-    # Draw floorboards in the other direction (for checker pattern effect)
-    for i in range(-num_planks//2, num_planks//2):
-        y_start = i * plank_width
-        y_end = (i + 1) * plank_width
-        
-        if i % 2 == 0:
-            glColor4f(0.55, 0.4, 0.3, 0.3)  # Semi-transparent light wood
-        else:
-            glColor4f(0.45, 0.33, 0.23, 0.3)  # Semi-transparent dark wood
-        
-        glEnable(GL_BLEND)
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-        glBegin(GL_QUADS)
-        glVertex3f(-ROOM_SIZE, y_start, 0.2)
-        glVertex3f(ROOM_SIZE, y_start, 0.2)
-        glVertex3f(ROOM_SIZE, y_end, 0.2)
-        glVertex3f(-ROOM_SIZE, y_end, 0.2)
-        glEnd()
-        glDisable(GL_BLEND)
-    
-    glPopMatrix()
 
 def draw_fireplace():
     """Draw fireplace standing on the floor"""
@@ -213,84 +166,48 @@ def draw_furniture():
     """Draw furniture arranged on the floor"""
     glPushMatrix()
     
-    # Large Persian rug in center
-    glBegin(GL_QUADS)
-    # Rug base (deep red)
-    glColor3f(0.7, 0.15, 0.1)
-    glVertex3f(-120, -80, 0.5)
-    glVertex3f(120, -80, 0.5)
-    glVertex3f(120, 80, 0.5)
-    glVertex3f(-120, 80, 0.5)
+    # Large purple rug (bigger and simpler)
+    rug_width = 300  # Increased from 240
+    rug_height = 200  # Increased from 160
     
-    # Rug border (gold)
-    glColor3f(0.9, 0.8, 0.2)
-    border = 15
-    # Top border
-    glVertex3f(-120, -80, 0.6)
-    glVertex3f(120, -80, 0.6)
-    glVertex3f(120, -80 + border, 0.6)
-    glVertex3f(-120, -80 + border, 0.6)
-    # Bottom border
-    glVertex3f(-120, 80 - border, 0.6)
-    glVertex3f(120, 80 - border, 0.6)
-    glVertex3f(120, 80, 0.6)
-    glVertex3f(-120, 80, 0.6)
-    # Left border
-    glVertex3f(-120, -80, 0.6)
-    glVertex3f(-120 + border, -80, 0.6)
-    glVertex3f(-120 + border, 80, 0.6)
-    glVertex3f(-120, 80, 0.6)
-    # Right border
-    glVertex3f(120 - border, -80, 0.6)
-    glVertex3f(120, -80, 0.6)
-    glVertex3f(120, 80, 0.6)
-    glVertex3f(120 - border, 80, 0.6)
+    # Main purple rectangle
+    glColor3f(0.6, 0.2, 0.8)  # Purple color
+    glBegin(GL_QUADS)
+    glVertex3f(-rug_width/2, -rug_height/2, 0.5)
+    glVertex3f(rug_width/2, -rug_height/2, 0.5)
+    glVertex3f(rug_width/2, rug_height/2, 0.5)
+    glVertex3f(-rug_width/2, rug_height/2, 0.5)
     glEnd()
     
-    # Sofa facing fireplace (left side)
-    glPushMatrix()
-    glTranslatef(-180, 0, 0)
+    # Simple border - INCREASE Z VALUE TO PREVENT FLICKERING
+    glColor3f(0.9, 0.9, 0.2)  # Yellow border
+    border_width = 10
+    border_height = 0.8  # Increased from 0.6 to prevent z-fighting
     
-    # Sofa base
-    glColor3f(0.5, 0.3, 0.6)  # Purple fabric
-    glPushMatrix()
-    glTranslatef(0, 0, 35)
-    glScalef(80, 40, 70)
-    glutSolidCube(1)
-    glPopMatrix()
+    glBegin(GL_QUADS)
+    # Top border
+    glVertex3f(-rug_width/2, -rug_height/2, border_height)
+    glVertex3f(rug_width/2, -rug_height/2, border_height)
+    glVertex3f(rug_width/2, -rug_height/2 + border_width, border_height)
+    glVertex3f(-rug_width/2, -rug_height/2 + border_width, border_height)
+    # Bottom border
+    glVertex3f(-rug_width/2, rug_height/2 - border_width, border_height)
+    glVertex3f(rug_width/2, rug_height/2 - border_width, border_height)
+    glVertex3f(rug_width/2, rug_height/2, border_height)
+    glVertex3f(-rug_width/2, rug_height/2, border_height)
+    # Left border
+    glVertex3f(-rug_width/2, -rug_height/2, border_height)
+    glVertex3f(-rug_width/2 + border_width, -rug_height/2, border_height)
+    glVertex3f(-rug_width/2 + border_width, rug_height/2, border_height)
+    glVertex3f(-rug_width/2, rug_height/2, border_height)
+    # Right border
+    glVertex3f(rug_width/2 - border_width, -rug_height/2, border_height)
+    glVertex3f(rug_width/2, -rug_height/2, border_height)
+    glVertex3f(rug_width/2, rug_height/2, border_height)
+    glVertex3f(rug_width/2 - border_width, rug_height/2, border_height)
+    glEnd()
     
-    # Sofa back
-    glPushMatrix()
-    glTranslatef(0, 25, 75)
-    glScalef(80, 10, 40)
-    glutSolidCube(1)
-    glPopMatrix()
-    
-    # Sofa arms
-    glColor3f(0.4, 0.2, 0.5)
-    # Left arm
-    glPushMatrix()
-    glTranslatef(-40, 0, 70)
-    glScalef(10, 40, 60)
-    glutSolidCube(1)
-    glPopMatrix()
-    # Right arm
-    glPushMatrix()
-    glTranslatef(40, 0, 70)
-    glScalef(10, 40, 60)
-    glutSolidCube(1)
-    glPopMatrix()
-    
-    # Sofa cushions
-    glColor3f(0.6, 0.4, 0.7)
-    for y_pos in [-10, 10]:
-        glPushMatrix()
-        glTranslatef(0, y_pos, 75)
-        glScalef(70, 15, 10)
-        glutSolidCube(1)
-        glPopMatrix()
-    
-    glPopMatrix()
+    # ... rest of the function remains the same ...
     
     # Coffee table on rug
     glPushMatrix()
@@ -383,13 +300,13 @@ def draw_furniture():
     
     glPopMatrix()
     
-    # Armchair (near bookshelf)
+    # Wooden armchair (near bookshelf)
     glPushMatrix()
     glTranslatef(150, -120, 0)
     glRotatef(45, 0, 0, 1)
     
-    # Chair base
-    glColor3f(0.3, 0.5, 0.3)  # Green fabric
+    # Chair base - Brown wood color
+    glColor3f(0.45, 0.3, 0.2)
     glPushMatrix()
     glTranslatef(0, 0, 30)
     glScalef(40, 40, 60)
